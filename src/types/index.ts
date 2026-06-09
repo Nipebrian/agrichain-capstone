@@ -6,6 +6,7 @@ import ProofOfStake from "../consensus/pos"
 
 import { Level } from "level"
 import { MessageTypeEnum } from "../enum"
+import * as IoTTypes from "./iot"
 
 interface BlockInterface {
   timestamp: number
@@ -70,3 +71,5 @@ export type {
   DBType,
   Peer,
 }
+
+export { IoTTypes }

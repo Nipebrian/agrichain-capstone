@@ -6,6 +6,7 @@ import {
   getSupplyChainAnalytics,
   getStakingAnalytics,
   getBlockAnalytics,
+  getIoTAnalytics,
 } from "../controller/AnalyticsController"
 
 const router = Router()
@@ -15,5 +16,6 @@ router.get("/transactions", catcher(getTransactionAnalytics))
 router.get("/supply-chain", catcher(getSupplyChainAnalytics))
 router.get("/staking", catcher(getStakingAnalytics))
 router.get("/blocks", catcher(getBlockAnalytics))
+router.get("/iot", catcher(getIoTAnalytics))
 
 export default router

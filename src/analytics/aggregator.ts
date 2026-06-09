@@ -181,3 +181,26 @@ export async function getTotalTransactionCount(): Promise<number> {
   const keys = await txhashDB.keys().all()
   return keys.length
 }
+
+export function getIoTReadingsFromBlocks(blocks: RawBlock[]): any[] {
+  const readings: any[] = []
+  for (const block of blocks) {
+    if (block.lastHash === "----") continue // skip genesis
+    for (const tx of block.data) {
+      if (tx.data?.iotMetadata?.readings) {
+        const metadata = tx.data.iotMetadata
+        for (const reading of metadata.readings) {
+          readings.push({
+            ...reading,
+            assessment: {
+              damageRiskLevel: metadata.damageRiskLevel || "LOW",
+              damageIndicators: metadata.damageIndicators || [],
+            },
+          })
+        }
+      }
+    }
+  }
+  return readings
+}
+

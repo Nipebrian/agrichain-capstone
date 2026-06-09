@@ -58,7 +58,7 @@ const signTransaction = async (req: Request, res: Response) => {
       data,
       from,
       to,
-      lastTransactionHash,
+      lastTransactionHash: lastTransactionHash ?? undefined,
     })
     transaction.sign(keyPair)
 
@@ -82,7 +82,7 @@ const createTransaction = async (req: Request, res: Response) => {
       from,
       to,
       signature,
-      lastTransactionHash,
+      lastTransactionHash: lastTransactionHash ?? undefined,
     })
 
     if (privateKey) {

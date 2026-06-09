@@ -6,7 +6,7 @@ const validate =
   (schema: AnySchema) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await schema.validate(req.body)
+      req.body = await schema.validate(req.body, { stripUnknown: false })
       next()
     } catch (err: any) {
       next(createHttpError(400, err.message))

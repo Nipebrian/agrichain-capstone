@@ -6,6 +6,7 @@ import {
   getStakingData,
   getUserCount,
   getTotalTransactionCount,
+  getIoTReadingsFromBlocks,
 } from "../../analytics/aggregator"
 
 const truncateAddress = (addr: string) =>
@@ -165,10 +166,22 @@ const getBlockAnalytics = async (_req: Request, res: Response) => {
   })
 }
 
+const getIoTAnalytics = async (_req: Request, res: Response) => {
+  const blocks = await getAllBlocks()
+  const readings = getIoTReadingsFromBlocks(blocks)
+
+  res.json({
+    data: {
+      readings,
+    },
+  })
+}
+
 export {
   getOverview,
   getTransactionAnalytics,
   getSupplyChainAnalytics,
   getStakingAnalytics,
   getBlockAnalytics,
+  getIoTAnalytics,
 }

@@ -295,6 +295,62 @@
       margin-bottom: 20px;
       font-size: 13px;
     }
+
+    /* IoT METRICS */
+    .iot-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .iot-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .iot-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: #06b6d4;
+    }
+
+    .iot-card .icon { font-size: 20px; margin-bottom: 8px; }
+    .iot-card .value { font-size: 24px; font-weight: 700; color: #f8fafc; }
+    .iot-card .label { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+
+    .iot-device-list {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .iot-device-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #0f172a;
+      border-radius: 8px;
+      border-left: 3px solid #06b6d4;
+      font-size: 12px;
+    }
+
+    .iot-device-id { font-weight: 600; color: #cbd5e1; }
+    .iot-device-status { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+    .iot-device-status.active { background: #22c55e; color: #0f172a; }
+    .iot-device-status.warning { background: #f59e0b; color: #0f172a; }
+    .iot-device-status.error { background: #ef4444; color: #0f172a; }
   </style>
 </head>
 <body>
@@ -438,6 +494,57 @@
       <div class="chart-box">
         <h3>⏱️ Block Timeline</h3>
         <div class="timeline" id="timeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IoT METRICS -->
+  <div class="section">
+    <div class="section-title">🌐 Monitoring IoT (Internet of Things)</div>
+    <div class="iot-cards">
+      <div class="iot-card">
+        <div class="icon">📡</div>
+        <div class="value" id="iot-devices">-</div>
+        <div class="label">Device Aktif</div>
+      </div>
+      <div class="iot-card">
+        <div class="icon">📊</div>
+        <div class="value" id="iot-readings">-</div>
+        <div class="label">Total Readings</div>
+      </div>
+      <div class="iot-card">
+        <div class="icon">⚠️</div>
+        <div class="value" id="iot-warnings">-</div>
+        <div class="label">Peringatan</div>
+      </div>
+      <div class="iot-card">
+        <div class="icon">✅</div>
+        <div class="value" id="iot-ok">-</div>
+        <div class="label">Status Baik</div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>🌡️ Sebaran Suhu Pengiriman</h3>
+        <canvas id="chart-temperature"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>💧 Sebaran Kelembaban</h3>
+        <canvas id="chart-humidity"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>⚡ Status Risiko Kerusakan</h3>
+        <canvas id="chart-risk"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-grid" style="margin-top: 20px;">
+      <div class="chart-box" style="grid-column: 1 / -1;">
+        <h3>📍 Device Tracking Aktif</h3>
+        <div class="iot-device-list" id="iot-device-list">
+          <div style="text-align: center; color: #64748b; padding: 20px;">Memuat data device...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -642,6 +749,205 @@
     el.appendChild(avg)
   }
 
+  // ===== IoT FUNCTIONS =====
+  function renderIoTMetrics(readings) {
+    if (!readings || readings.length === 0) {
+      document.getElementById('iot-devices').textContent = '0'
+      document.getElementById('iot-readings').textContent = '0'
+      document.getElementById('iot-warnings').textContent = '0'
+      document.getElementById('iot-ok').textContent = '0'
+      return
+    }
+
+    // Count unique devices
+    const uniqueDevices = new Set(readings.map(r => r.deviceInfo?.deviceId)).size
+
+    // Count readings by risk level
+    const lowRisk = readings.filter(r => r.assessment?.damageRiskLevel === 'LOW').length
+    const mediumRisk = readings.filter(r => r.assessment?.damageRiskLevel === 'MEDIUM').length
+    const highRisk = readings.filter(r => r.assessment?.damageRiskLevel === 'HIGH').length
+
+    document.getElementById('iot-devices').textContent = uniqueDevices
+    document.getElementById('iot-readings').textContent = readings.length
+    document.getElementById('iot-warnings').textContent = mediumRisk + highRisk
+    document.getElementById('iot-ok').textContent = lowRisk
+  }
+
+  function renderTemperatureChart(readings) {
+    if (!readings || readings.length === 0) {
+      destroyChart('temperature')
+      return
+    }
+
+    destroyChart('temperature')
+    const temps = readings
+      .map(r => r.environmental?.temperature || r.reading?.environmental?.temperature)
+      .filter(t => t != null)
+
+    const histogram = {}
+    temps.forEach(t => {
+      const bin = Math.floor(t / 5) * 5
+      histogram[bin] = (histogram[bin] || 0) + 1
+    })
+
+    charts['temperature'] = new Chart(document.getElementById('chart-temperature'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(histogram).map(b => b + '-' + (parseInt(b) + 5) + '°C'),
+        datasets: [{
+          label: 'Jumlah Pembacaan',
+          data: Object.values(histogram),
+          backgroundColor: '#06b6d4cc',
+          borderColor: '#06b6d4',
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, beginAtZero: true }
+        }
+      }
+    })
+  }
+
+  function renderHumidityChart(readings) {
+    if (!readings || readings.length === 0) {
+      destroyChart('humidity')
+      return
+    }
+
+    destroyChart('humidity')
+    const humidities = readings
+      .map(r => r.environmental?.humidity || r.reading?.environmental?.humidity)
+      .filter(h => h != null)
+
+    const histogram = {}
+    humidities.forEach(h => {
+      const bin = Math.floor(h / 10) * 10
+      histogram[bin] = (histogram[bin] || 0) + 1
+    })
+
+    charts['humidity'] = new Chart(document.getElementById('chart-humidity'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(histogram).map(b => b + '-' + (parseInt(b) + 10) + '%'),
+        datasets: [{
+          label: 'Jumlah Pembacaan',
+          data: Object.values(histogram),
+          backgroundColor: '#10b98199',
+          borderColor: '#10b981',
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, beginAtZero: true }
+        }
+      }
+    })
+  }
+
+  function renderRiskChart(readings) {
+    if (!readings || readings.length === 0) {
+      destroyChart('risk')
+      return
+    }
+
+    destroyChart('risk')
+    const lowRisk = readings.filter(r => r.assessment?.damageRiskLevel === 'LOW').length
+    const mediumRisk = readings.filter(r => r.assessment?.damageRiskLevel === 'MEDIUM').length
+    const highRisk = readings.filter(r => r.assessment?.damageRiskLevel === 'HIGH').length
+
+    charts['risk'] = new Chart(document.getElementById('chart-risk'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Rendah', 'Sedang', 'Tinggi'],
+        datasets: [{
+          data: [lowRisk, mediumRisk, highRisk],
+          backgroundColor: ['#22c55ecc', '#f59e0bcc', '#ef4444cc'],
+          borderColor: ['#22c55e', '#f59e0b', '#ef4444'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { labels: { color: '#cbd5e1', font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.label}: ${ctx.raw} pembacaan`
+            }
+          }
+        }
+      }
+    })
+  }
+
+  function renderDeviceList(readings) {
+    if (!readings || readings.length === 0) {
+      document.getElementById('iot-device-list').innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">Tidak ada device aktif</div>'
+      return
+    }
+
+    // Group by device ID and get latest status
+    const deviceMap = {}
+    readings.forEach(r => {
+      const deviceId = r.deviceInfo?.deviceId
+      if (deviceId && !deviceMap[deviceId]) {
+        deviceMap[deviceId] = r
+      }
+    })
+
+    const html = Object.entries(deviceMap)
+      .slice(0, 10)
+      .map(([deviceId, reading]) => {
+        const risk = reading.assessment?.damageRiskLevel || 'UNKNOWN'
+        const statusClass = risk === 'LOW' ? 'active' : risk === 'MEDIUM' ? 'warning' : 'error'
+        const temp = (reading.environmental?.temperature || '-').toFixed(1)
+        const humidity = (reading.environmental?.humidity || '-').toFixed(1)
+        return `
+          <div class="iot-device-item">
+            <span class="iot-device-id">${deviceId}</span>
+            <span style="color: #94a3b8; font-size: 10px;">🌡️ ${temp}°C | 💧 ${humidity}%</span>
+            <span class="iot-device-status ${statusClass}">${risk}</span>
+          </div>
+        `
+      })
+      .join('')
+
+    document.getElementById('iot-device-list').innerHTML = html
+  }
+
+  async function loadIoTMetrics() {
+    try {
+      // Fetch actual IoT data from the blockchain
+      const response = await fetch('http://localhost:5010/api/analytics/iot')
+      if (!response.ok) throw new Error('IoT service unavailable')
+
+      const json = await response.json()
+      const readings = json.data?.readings || []
+
+      renderIoTMetrics(readings)
+      renderTemperatureChart(readings)
+      renderHumidityChart(readings)
+      renderRiskChart(readings)
+      renderDeviceList(readings)
+    } catch (e) {
+      console.log('IoT data not yet available:', e.message)
+      // Render empty state
+      document.getElementById('iot-devices').textContent = '0'
+      document.getElementById('iot-readings').textContent = '0'
+      document.getElementById('iot-warnings').textContent = '0'
+      document.getElementById('iot-ok').textContent = '0'
+      document.getElementById('iot-device-list').innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">Tidak ada device aktif</div>'
+    }
+  }
+
   async function loadAll() {
     document.getElementById('error-msg').style.display = 'none'
     document.getElementById('srv-status').textContent = 'Memuat...'
@@ -658,6 +964,9 @@
       renderStake(st)
       renderDifficulty(bl)
       renderTimeline(bl)
+      
+      // Load IoT metrics
+      await loadIoTMetrics()
 
       document.getElementById('srv-status').textContent = 'Terhubung ✓'
       document.getElementById('srv-status').style.color = '#4ade80'

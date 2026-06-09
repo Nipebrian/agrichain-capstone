@@ -4,8 +4,8 @@ const transactionSchema = yup.object({
   privateKey: yup.string().optional(),
   from: yup.string().required(),
   to: yup.string().required(),
-  data: yup.object(),
-  lastTransactionHash: yup.string().optional(),
+  data: yup.object().unknown(true),
+  lastTransactionHash: yup.string().nullable().optional(),
   signature: yup.string().optional(),
 })
 
@@ -13,8 +13,8 @@ const singTransactionSchema = yup.object({
   privateKey: yup.string().required(),
   from: yup.string().required(),
   to: yup.string().required(),
-  data: yup.object(),
-  lastTransactionHash: yup.string().optional(),
+  data: yup.object().unknown(true),
+  lastTransactionHash: yup.string().nullable().optional(),
 })
 
 const coinTransferSchema = yup.object({
@@ -30,7 +30,7 @@ const coinStakeSchema = yup.object({
 
 const createBenihSchema = yup.object({
   address: yup.string().required(),
-  data: yup.object().required(),
+  data: yup.object().unknown(true).required(),
 })
 
 const purchaseCoinSchema = yup.object({

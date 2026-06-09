@@ -8,16 +8,27 @@ Sistem pelacakan rantai pasok benih berbasis blockchain dengan mekanisme konsens
 
 ## Daftar Isi
 
-- [Fitur Utama](#fitur-utama)
-- [Arsitektur Sistem](#arsitektur-sistem)
-- [Teknologi](#teknologi)
-- [Instalasi](#instalasi)
-- [Menjalankan Server](#menjalankan-server)
-- [Demo Data (Seed)](#demo-data-seed)
-- [API Reference](#api-reference)
-- [Dashboard Analitik](#dashboard-analitik)
-- [Struktur Proyek](#struktur-proyek)
-- [Cara Kerja Blockchain](#cara-kerja-blockchain)
+- [🌾 AgriChain — Blockchain Rantai Pasok Benih Pertanian](#-agrichain--blockchain-rantai-pasok-benih-pertanian)
+  - [Daftar Isi](#daftar-isi)
+  - [Fitur Utama](#fitur-utama)
+  - [Arsitektur Sistem](#arsitektur-sistem)
+  - [Teknologi](#teknologi)
+  - [Instalasi](#instalasi)
+  - [Menjalankan Server](#menjalankan-server)
+  - [Demo Data (Seed)](#demo-data-seed)
+  - [API Reference](#api-reference)
+    - [Pengguna](#pengguna)
+    - [Transaksi](#transaksi)
+    - [Blok](#blok)
+    - [Analitik](#analitik)
+  - [Dashboard Analitik](#dashboard-analitik)
+  - [Struktur Proyek](#struktur-proyek)
+  - [Cara Kerja Blockchain](#cara-kerja-blockchain)
+    - [Proof-of-Stake Consensus](#proof-of-stake-consensus)
+    - [Supply Chain Linkage](#supply-chain-linkage)
+    - [Difficulty Adjustment](#difficulty-adjustment)
+  - [Menjalankan Unit Test](#menjalankan-unit-test)
+  - [Lisensi](#lisensi)
 
 ---
 
@@ -240,6 +251,16 @@ Buka file `dashboard.html` langsung di browser (tidak perlu server tambahan):
 
 ```
 agrichain-capstone/dashboard.html  →  double-click atau drag ke Chrome
+
+atau
+
+install http-server:
+npm install -g http-server
+
+Jalankan dari folder project:
+http-server -p 8080 -o
+
+Akses: http://localhost:8080/dashboard.html
 ```
 
 Pastikan server sedang berjalan. Dashboard memuat semua data otomatis dan memiliki tombol **↻ Refresh**.

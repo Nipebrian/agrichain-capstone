@@ -597,6 +597,18 @@ const loopMine = (
                 ordererAddress,
               })
             )
+          } else {
+            // FALLBACK: If the selected forger is offline/not running a P2P node,
+            // the orderer node mines the transactions to prevent the blockchain from freezing.
+            isMining = true
+            try {
+              console.log(
+                `\x1b[33mWARN\x1b[0m Selected forger ${forgerPublicKey} is offline. Fallback to orderer node for mining.`
+              )
+              await mine(publicKey, keyPair)
+            } finally {
+              isMining = false
+            }
           }
         }
       }
