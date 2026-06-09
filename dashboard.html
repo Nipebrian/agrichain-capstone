@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgriChain Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e3a5f, #0f4c35);
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #1e40af44;
+    }
+
+    header .logo { font-size: 32px; }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f0fdf4;
+    }
+
+    header p {
+      font-size: 13px;
+      color: #86efac;
+      margin-top: 2px;
+    }
+
+    header .refresh-btn {
+      margin-left: auto;
+      background: #166534;
+      border: 1px solid #16a34a;
+      color: #bbf7d0;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    header .refresh-btn:hover { background: #15803d; }
+
+    #status-bar {
+      background: #1e293b;
+      padding: 8px 32px;
+      font-size: 12px;
+      color: #94a3b8;
+      border-bottom: 1px solid #334155;
+    }
+
+    #status-bar span { color: #4ade80; font-weight: 600; }
+
+    .container { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+    /* STAT CARDS */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .card.green::before  { background: #22c55e; }
+    .card.blue::before   { background: #3b82f6; }
+    .card.yellow::before { background: #eab308; }
+    .card.purple::before { background: #a855f7; }
+    .card.teal::before   { background: #14b8a6; }
+    .card.orange::before { background: #f97316; }
+
+    .card .icon { font-size: 24px; margin-bottom: 10px; }
+    .card .value { font-size: 28px; font-weight: 700; color: #f8fafc; }
+    .card .label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+    /* SECTION HEADERS */
+    .section { margin-bottom: 28px; }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    /* CHART GRID */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .chart-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .chart-box h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 16px;
+    }
+
+    .chart-box canvas { max-height: 240px; }
+
+    /* SUPPLY CHAIN */
+    .supply-chain {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .supply-chain h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+
+    .flow-node {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      padding: 16px 24px;
+      text-align: center;
+      min-width: 140px;
+      position: relative;
+    }
+
+    .flow-node.genesis { border-color: #7c3aed; }
+    .flow-node.petani  { border-color: #16a34a; }
+    .flow-node.dist    { border-color: #2563eb; }
+    .flow-node.peng    { border-color: #ea580c; }
+
+    .flow-node .node-icon { font-size: 28px; margin-bottom: 6px; }
+    .flow-node .node-name { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+    .flow-node .node-desc { font-size: 11px; color: #64748b; margin-top: 3px; }
+
+    .flow-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .flow-arrow .arrow-label {
+      font-size: 10px;
+      color: #4ade80;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+
+    .flow-arrow .arrow-line {
+      display: flex;
+      align-items: center;
+      color: #22c55e;
+      font-size: 22px;
+    }
+
+    /* STATS TABLE */
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .stat-pill {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .stat-pill strong { color: #4ade80; }
+
+    /* BLOCK TIMELINE */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #0f172a;
+      border-radius: 8px;
+      border-left: 3px solid #334155;
+      font-size: 12px;
+    }
+
+    .timeline-row.genesis { border-left-color: #7c3aed; }
+    .timeline-row.data    { border-left-color: #22c55e; }
+
+    .timeline-row .blk-num {
+      font-weight: 700;
+      color: #f8fafc;
+      width: 60px;
+    }
+
+    .timeline-row .blk-tx {
+      color: #94a3b8;
+      width: 80px;
+    }
+
+    .timeline-row .blk-time {
+      color: #fbbf24;
+      flex: 1;
+    }
+
+    .timeline-row .blk-diff {
+      color: #60a5fa;
+    }
+
+    /* LOADING */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #1e293b;
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading p { color: #64748b; font-size: 14px; }
+
+    #error-msg {
+      display: none;
+      background: #7f1d1d;
+      border: 1px solid #dc2626;
+      color: #fca5a5;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Mengambil data dari blockchain...</p>
+</div>
+
+<header>
+  <div class="logo">🌾</div>
+  <div>
+    <h1>AgriChain Analytics Dashboard</h1>
+    <p>Sistem Pelacakan Rantai Pasok Benih Berbasis Blockchain</p>
+  </div>
+  <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+</header>
+
+<div id="status-bar">Server: <span id="srv-status">Menghubungkan...</span> &nbsp;|&nbsp; Terakhir diperbarui: <span id="last-update">-</span></div>
+
+<div class="container">
+  <div id="error-msg"></div>
+
+  <!-- OVERVIEW CARDS -->
+  <div class="section">
+    <div class="section-title">Ringkasan Blockchain</div>
+    <div class="cards">
+      <div class="card green">
+        <div class="icon">🔗</div>
+        <div class="value" id="c-blocks">-</div>
+        <div class="label">Total Blok</div>
+      </div>
+      <div class="card blue">
+        <div class="icon">📄</div>
+        <div class="value" id="c-txs">-</div>
+        <div class="label">Total Transaksi</div>
+      </div>
+      <div class="card yellow">
+        <div class="icon">👥</div>
+        <div class="value" id="c-users">-</div>
+        <div class="label">Total Pengguna</div>
+      </div>
+      <div class="card purple">
+        <div class="icon">🪙</div>
+        <div class="value" id="c-staked">-</div>
+        <div class="label">Total Staked</div>
+      </div>
+      <div class="card teal">
+        <div class="icon">📊</div>
+        <div class="value" id="c-avg">-</div>
+        <div class="label">Avg Tx/Blok</div>
+      </div>
+      <div class="card orange">
+        <div class="icon">🏷️</div>
+        <div class="value" id="c-latest">-</div>
+        <div class="label">Blok Terkini</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPLY CHAIN FLOW -->
+  <div class="section">
+    <div class="section-title">Alur Rantai Pasok Benih</div>
+    <div class="supply-chain">
+      <h3>🌱 Perjalanan Benih dari Sumber ke Konsumen</h3>
+      <div class="flow">
+        <div class="flow-node genesis">
+          <div class="node-icon">🏛️</div>
+          <div class="node-name">Pemerintah</div>
+          <div class="node-desc">Issuer Sertifikat</div>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-label">Registrasi</div>
+          <div class="arrow-line">→</div>
+        </div>
+        <div class="flow-node petani">
+          <div class="node-icon">👨‍🌾</div>
+          <div class="node-name">Petani</div>
+          <div class="node-desc">Pemilik Awal</div>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-label">Transfer</div>
+          <div class="arrow-line">→</div>
+        </div>
+        <div class="flow-node dist">
+          <div class="node-icon">🏭</div>
+          <div class="node-name">Distributor</div>
+          <div class="node-desc">Agen Distribusi</div>
+        </div>
+        <div class="flow-arrow">
+          <div class="arrow-label">Transfer</div>
+          <div class="arrow-line">→</div>
+        </div>
+        <div class="flow-node peng">
+          <div class="node-icon">🏪</div>
+          <div class="node-name">Pengecer</div>
+          <div class="node-desc">Penjual Akhir</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-pill">Benih Terdaftar: <strong id="sc-benih">-</strong></div>
+        <div class="stat-pill">Total Transfer: <strong id="sc-transfer">-</strong></div>
+        <div class="stat-pill">Kedalaman Rantai Rata-rata: <strong id="sc-depth">-</strong></div>
+        <div class="stat-pill">Rantai Terpanjang: <strong id="sc-longest">-</strong> hop</div>
+        <div class="stat-pill">Pemilik Unik: <strong id="sc-owners">-</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="section">
+    <div class="section-title">Analisis Transaksi</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>📊 Komposisi Jenis Transaksi</h3>
+        <canvas id="chart-tx-type"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>📦 Volume Transaksi per Blok</h3>
+        <canvas id="chart-volume"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>🥇 Top Pengirim Transaksi</h3>
+        <canvas id="chart-senders"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="section">
+    <div class="section-title">Proof-of-Stake & Blok</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>🪙 Distribusi Stake</h3>
+        <canvas id="chart-stake"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>⚙️ Tren Difficulty Mining</h3>
+        <canvas id="chart-difficulty"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>⏱️ Block Timeline</h3>
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE = 'http://localhost:5010/api/analytics'
+  let charts = {}
+
+  function destroyChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id] }
+  }
+
+  const COLORS = ['#22c55e','#3b82f6','#f59e0b','#a855f7','#ef4444','#14b8a6','#f97316']
+  const COLORS_BG = COLORS.map(c => c + 'cc')
+
+  async function fetchAll() {
+    const [ov, tx, sc, st, bl] = await Promise.all([
+      fetch(BASE + '/overview').then(r => r.json()),
+      fetch(BASE + '/transactions').then(r => r.json()),
+      fetch(BASE + '/supply-chain').then(r => r.json()),
+      fetch(BASE + '/staking').then(r => r.json()),
+      fetch(BASE + '/blocks').then(r => r.json()),
+    ])
+    return { ov: ov.data, tx: tx.data, sc: sc.data, st: st.data, bl: bl.data }
+  }
+
+  function renderOverview(d) {
+    document.getElementById('c-blocks').textContent  = d.totalBlocks
+    document.getElementById('c-txs').textContent     = d.totalTransactions
+    document.getElementById('c-users').textContent   = d.totalUsers
+    document.getElementById('c-staked').textContent  = d.totalStaked
+    document.getElementById('c-avg').textContent     = d.avgTransactionsPerBlock
+    document.getElementById('c-latest').textContent  = '#' + d.latestBlockNumber
+  }
+
+  function renderSupplyChain(d) {
+    document.getElementById('sc-benih').textContent    = d.totalBenihRegistered + ' komoditas'
+    document.getElementById('sc-transfer').textContent = d.totalTransfers + ' kali'
+    document.getElementById('sc-depth').textContent    = d.avgChainDepth + ' hop'
+    document.getElementById('sc-longest').textContent  = d.longestChain
+    document.getElementById('sc-owners').textContent   = d.totalUniqueOwners + ' aktor'
+  }
+
+  function renderTxType(d) {
+    destroyChart('tx-type')
+    const labels = Object.keys(d.byType)
+    const labelMap = { agri: 'Agri (Supply Chain)', COIN_PURCHASE: 'Pembelian Koin', STAKE: 'Stake', MINING_REWARD: 'Reward Mining' }
+    charts['tx-type'] = new Chart(document.getElementById('chart-tx-type'), {
+      type: 'doughnut',
+      data: {
+        labels: labels.map(l => labelMap[l] || l),
+        datasets: [{ data: Object.values(d.byType), backgroundColor: COLORS_BG, borderColor: COLORS, borderWidth: 2 }]
+      },
+      options: {
+        plugins: {
+          legend: { labels: { color: '#cbd5e1', font: { size: 11 } } }
+        }
+      }
+    })
+  }
+
+  function renderVolume(d) {
+    destroyChart('volume')
+    charts['volume'] = new Chart(document.getElementById('chart-volume'), {
+      type: 'bar',
+      data: {
+        labels: d.volumePerBlock.map(b => 'Blok #' + b.blockNumber),
+        datasets: [{
+          label: 'Jumlah Transaksi',
+          data: d.volumePerBlock.map(b => b.txCount),
+          backgroundColor: '#3b82f6cc',
+          borderColor: '#3b82f6',
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: '#334155' }, beginAtZero: true }
+        }
+      }
+    })
+  }
+
+  function renderSenders(d) {
+    destroyChart('senders')
+    charts['senders'] = new Chart(document.getElementById('chart-senders'), {
+      type: 'bar',
+      data: {
+        labels: d.topSenders.map(s => s.address),
+        datasets: [{
+          label: 'Transaksi Dikirim',
+          data: d.topSenders.map(s => s.sentCount),
+          backgroundColor: ['#22c55ecc','#f59e0bcc','#a855f7cc'],
+          borderColor: ['#22c55e','#f59e0b','#a855f7'],
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' }, beginAtZero: true },
+          y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } }
+        }
+      }
+    })
+  }
+
+  function renderStake(d) {
+    destroyChart('stake')
+    const roleMap = (addr) => {
+      const known = {
+        '047ef917': 'Orderer (Node)',
+      }
+      const prefix = addr.replace('...','').substring(0,8)
+      return known[prefix] || addr
+    }
+    charts['stake'] = new Chart(document.getElementById('chart-stake'), {
+      type: 'doughnut',
+      data: {
+        labels: d.distribution.map(s => s.address + ' (' + s.percentage + '%)'),
+        datasets: [{
+          data: d.distribution.map(s => s.stake),
+          backgroundColor: COLORS_BG,
+          borderColor: COLORS,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { labels: { color: '#cbd5e1', font: { size: 10 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` Stake: ${ctx.raw} koin (${d.distribution[ctx.dataIndex].percentage}%)`
+            }
+          }
+        }
+      }
+    })
+  }
+
+  function renderDifficulty(d) {
+    destroyChart('difficulty')
+    charts['difficulty'] = new Chart(document.getElementById('chart-difficulty'), {
+      type: 'line',
+      data: {
+        labels: d.difficultyTrend.map(b => 'Blok #' + b.blockNumber),
+        datasets: [{
+          label: 'Difficulty',
+          data: d.difficultyTrend.map(b => b.difficulty),
+          borderColor: '#f59e0b',
+          backgroundColor: '#f59e0b22',
+          borderWidth: 2,
+          pointBackgroundColor: '#f59e0b',
+          tension: 0.3,
+          fill: true,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: '#334155' }, beginAtZero: true }
+        }
+      }
+    })
+  }
+
+  function renderTimeline(d) {
+    const el = document.getElementById('timeline')
+    el.innerHTML = ''
+
+    // Genesis row
+    const g = document.createElement('div')
+    g.className = 'timeline-row genesis'
+    g.innerHTML = `<span class="blk-num">🔷 Blok #1</span><span class="blk-tx">Genesis</span><span class="blk-time">⏱ —</span><span class="blk-diff">🎯 Diff: 3</span>`
+    el.appendChild(g)
+
+    d.blockTimeline.forEach(b => {
+      const row = document.createElement('div')
+      row.className = 'timeline-row data'
+      const timeStr = b.miningTimeMs != null ? (b.miningTimeMs / 1000).toFixed(1) + ' detik' : '—'
+      const diff = d.difficultyTrend.find(x => x.blockNumber === b.blockNumber)
+      row.innerHTML = `
+        <span class="blk-num">🟢 Blok #${b.blockNumber}</span>
+        <span class="blk-tx">${b.txCount} transaksi</span>
+        <span class="blk-time">⏱ ${timeStr}</span>
+        <span class="blk-diff">🎯 Diff: ${diff ? diff.difficulty : '-'}</span>
+      `
+      el.appendChild(row)
+    })
+
+    // avg mining time
+    const avg = document.createElement('div')
+    avg.style.cssText = 'margin-top:10px;font-size:12px;color:#94a3b8;text-align:right;'
+    avg.textContent = `Rata-rata waktu mining: ${(d.avgMiningTimeMs / 1000).toFixed(1)} detik`
+    el.appendChild(avg)
+  }
+
+  async function loadAll() {
+    document.getElementById('error-msg').style.display = 'none'
+    document.getElementById('srv-status').textContent = 'Memuat...'
+    document.getElementById('srv-status').style.color = '#fbbf24'
+
+    try {
+      const { ov, tx, sc, st, bl } = await fetchAll()
+
+      renderOverview(ov)
+      renderSupplyChain(sc)
+      renderTxType(tx)
+      renderVolume(tx)
+      renderSenders(tx)
+      renderStake(st)
+      renderDifficulty(bl)
+      renderTimeline(bl)
+
+      document.getElementById('srv-status').textContent = 'Terhubung ✓'
+      document.getElementById('srv-status').style.color = '#4ade80'
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID')
+      document.getElementById('loading').style.display = 'none'
+    } catch (e) {
+      document.getElementById('srv-status').textContent = 'Tidak dapat terhubung'
+      document.getElementById('srv-status').style.color = '#f87171'
+      document.getElementById('loading').style.display = 'none'
+      const err = document.getElementById('error-msg')
+      err.style.display = 'block'
+      err.textContent = '⚠️  Tidak bisa terhubung ke server. Pastikan server berjalan di http://localhost:5010 lalu klik Refresh.'
+    }
+  }
+
+  loadAll()
+</script>
+</body>
+</html>
