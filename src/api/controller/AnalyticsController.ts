@@ -20,7 +20,7 @@ const getOverview = async (_req: Request, res: Response) => {
       getStakingData(),
     ])
 
-  const nonGenesisBlocks = blocks.filter((b) => b.number > 0)
+  const nonGenesisBlocks = blocks.filter((b) => b.lastHash !== "----")
   const totalStaked = stakingData.reduce((sum, s) => sum + s.stake, 0)
   const avgTransactionsPerBlock =
     nonGenesisBlocks.length > 0
@@ -54,7 +54,7 @@ const getTransactionAnalytics = async (_req: Request, res: Response) => {
   }
 
   const volumePerBlock = blocks
-    .filter((b) => b.number > 0)
+    .filter((b) => b.lastHash !== "----")
     .map((b) => ({
       blockNumber: b.number,
       txCount: Math.max(0, b.data.length - 1),
@@ -120,12 +120,15 @@ const getStakingAnalytics = async (_req: Request, res: Response) => {
 
 const getBlockAnalytics = async (_req: Request, res: Response) => {
   const blocks = await getAllBlocks()
-  const nonGenesis = blocks.filter((b) => b.number > 0)
+  const nonGenesis = blocks.filter((b) => b.lastHash !== "----")
 
   const blockTimeline = nonGenesis.map((block) => {
     const prevBlock = blocks.find((b) => b.number === block.number - 1)
+    // Exclude genesis as prev because its timestamp is a constant (1), not real time
     const miningTimeMs =
-      prevBlock != null ? block.timestamp - prevBlock.timestamp : null
+      prevBlock != null && prevBlock.lastHash !== "----"
+        ? block.timestamp - prevBlock.timestamp
+        : null
 
     return {
       blockNumber: block.number,

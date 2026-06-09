@@ -33,6 +33,7 @@ const connectedNodes = new Map<string, ConnectedNode>()
 
 let worker = fork(`${__dirname}/../miner/worker.ts`) // Worker thread (for PoW mining).
 let mined = false // This will be used to inform the node that another node has already mined before it.
+let isMining = false // Guard: prevent concurrent mine() calls from loopMine
 
 const chainInfo: ChainInfo = {
   syncQueue: new SyncQueue(),
@@ -573,16 +574,20 @@ const loopMine = (
   keyPair: ec.KeyPair
 ) => {
   setInterval(async () => {
+    if (isMining) return
     if (chainInfo.transactionPool.length > 0) {
       const forgerPublicKey = chainInfo.consensus.forger(
         chainInfo.latestBlock.hash
       )
 
-      console.log(forgerPublicKey)
-
       if (forgerPublicKey) {
         if (forgerPublicKey === publicKey) {
-          mine(publicKey, keyPair)
+          isMining = true
+          try {
+            await mine(publicKey, keyPair)
+          } finally {
+            isMining = false
+          }
         } else {
           const forgerNode = connectedNodes.get(forgerPublicKey)
 
@@ -716,8 +721,8 @@ const mine = async (publicKey: string, keyPair: ec.KeyPair) => {
 
   transactionsToMine.unshift(rewardTransaction)
 
-  // Mine the block.
-  startWorker(chainInfo.latestBlock, transactionsToMine)
+  // Mine the block. `return` ensures `await mine()` in loopMine waits for full completion.
+  return startWorker(chainInfo.latestBlock, transactionsToMine)
     .then(async (result) => {
       // If the block is not mined before, we will add it to our chain and broadcast this new block.
       if (!mined) {

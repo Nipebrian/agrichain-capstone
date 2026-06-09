@@ -68,7 +68,7 @@ export async function classifyTransactions(
   }
 
   for (const block of blocks) {
-    if (block.number === 0) continue
+    if (block.lastHash === "----") continue // skip genesis
 
     block.data.forEach((tx, index) => {
       const meta: TransactionWithMeta = {
