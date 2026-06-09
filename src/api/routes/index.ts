@@ -4,6 +4,7 @@ import BlockRoute from "./BlockRoute"
 import BlockchainRoute from "./BlockchainRoute"
 import TransactionRoute from "./TransactionRoute"
 import UserRoute from "./UserRoute"
+import AnalyticsRoute from "./AnalyticsRoute"
 
 const router = express.Router()
 
@@ -18,5 +19,6 @@ router.use("/block", BlockRoute)
 router.use("/blockchain", BlockchainRoute)
 router.use("/transaction", TransactionRoute)
 router.use("/user", UserRoute)
+router.use("/analytics", AnalyticsRoute)
 
 export default router
